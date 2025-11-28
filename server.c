@@ -1,5 +1,7 @@
 #include <signal.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 void server_handler(int sig, siginfo_t *info, void *ucontext)
 {
     (void)ucontext;
@@ -7,17 +9,20 @@ void server_handler(int sig, siginfo_t *info, void *ucontext)
 
     static int bit = 0;
     static unsigned char current = 0;
-    if(sig == SIGUSR1)
-        current &= ~(1 << (7-bit));
-    else if(sig == SIGUSR2)
-        current |=(1 << (7-bit));
+    if(sig == SIGUSR2)
+        current = (current << 1) | 1;
+    else if(sig == SIGUSR1)
+        current = (current << 1);
     bit++;
+
+    
     if(bit==8)
     {
         write(1,&current,1);
         bit =0;
         current = 0;
     }
+    kill(info->si_pid,SIGUSR1);
 
 }
 int main(int ac,char* av[])
@@ -27,22 +32,22 @@ int main(int ac,char* av[])
     sa.sa_flags=SA_SIGINFO;
     sigemptyset(&sa.sa_mask);
     
-    pid_t pid = getpid();
-    char buf[20];
-    int len =0;
+    // pid_t pid = getpid();
+    // char buf[20];
+    // int len =0;
 
-    while(pid)
-    {
-        buf[len]= (pid%10)+'0';
-        pid /=10;
-        len++;
-    }
-    while(len--)
-        write(1,&buf[len],1);
-    write(1,"\n",1);
+    // while(pid)
+    // {
+    //     buf[len]= (pid%10)+'0';
+    //     pid /=10;
+    //     len++;
+    // }
+    // while(len--)
+    //     write(1,&buf[len],1);
+    // write(1,"\n",1);
+    printf("Server PID: %d\n", getpid());
     sigaction(SIGUSR1,&sa,NULL);
     sigaction(SIGUSR2,&sa,NULL);
-
     while(1)
         pause();
     return 0;
